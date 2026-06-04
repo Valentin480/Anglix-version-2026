@@ -1,0 +1,151 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId} (Firebase Auth UID)
+// Fields:
+//   - uid: string (required) - User's unique ID
+//   - name: string (required, 3-20 chars) - Display name
+//   - schoolLevel: string (required, enum) - School level
+//   - xp: number (required, positive) - Total experience points
+//   - level: number (required, positive) - Current level
+//   - coins: number (required, positive) - Currency
+//   - gems: number (required, positive) - Premium currency
+//   - completedLessons: list (strings) - IDs of finished lessons
+//   - inventory: list (objects) - Rewards collected
+//   - activeAura, activeTitle, activeSkin: string (optional) - Customization
+//   - lastUpdated: timestamp (required) - Last sync time
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isRecent(time) {
+      return time > request.time - duration.value(5, 'm') && time <= request.time;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+         (request.auth.token.email == "valentinstark22@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'schoolLevel', 'xp', 'level', 'coins', 'gems', 'completedLessons', 'inventory', 'streak', 'streakFreezeCount']) &&
+             data.uid == request.auth.uid &&
+             data.name is string && data.name.size() >= 3 && data.name.size() <= 20 &&
+             data.schoolLevel in ['Primaire', 'Collège', 'Lycée', 'Supérieur'] &&
+             data.xp is number && data.xp >= 0 &&
+             data.level is number && data.level >= 1 &&
+             data.coins is number && data.coins >= 0 &&
+             data.gems is number && data.gems >= 0 &&
+             data.completedLessons is list &&
+             data.inventory is list &&
+             data.streak is number && data.streak >= 0 &&
+             data.streakFreezeCount is number && data.streakFreezeCount >= 0;
+    }
+
+    function isValidDuel(data) {
+      return data.keys().hasAll(['challengerId', 'challengerName', 'status', 'createdAt']) &&
+             data.challengerId is string &&
+             data.challengerName is string &&
+             data.status in ['searching', 'voting', 'playing', 'completed', 'cancelled'] &&
+             data.createdAt is string;
+    }
+
+    function isValidLesson(data) {
+      return data.keys().hasAll(['id', 'title', 'category', 'explanation', 'level', 'difficulty', 'questions']) &&
+             data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() <= 300 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.explanation is string && data.explanation.size() <= 15000 &&
+             data.level in ['Primaire', 'Collège', 'Lycée', 'Supérieur'] &&
+             data.difficulty is number && data.difficulty >= 1 && data.difficulty <= 3 &&
+             data.questions is list && data.questions.size() <= 50;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && 
+                    isValidUser(request.resource.data) &&
+                    request.resource.data.uid == resource.data.uid;
+      allow delete: if isOwner(userId) || isAdmin();
+
+      match /stats/{statId} {
+        allow read: if isAuthenticated();
+        allow write: if isOwner(userId);
+      }
+
+      match /backpack/{lessonId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+
+    match /lessons/{lessonId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidId(lessonId) && isValidLesson(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /duels/{duelId} {
+      // Allow reading if part of the duel OR if the duel is in 'searching' status (for matchmaking)
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.challengerId || 
+        request.auth.uid == resource.data.opponentId ||
+        resource.data.status == 'searching'
+      );
+      
+      allow create: if isAuthenticated() && 
+                    request.resource.data.challengerId == request.auth.uid &&
+                    isValidDuel(request.resource.data);
+      
+      allow update: if isAuthenticated() && 
+                    (request.auth.uid == resource.data.challengerId || 
+                     request.auth.uid == resource.data.opponentId ||
+                     (resource.data.status == 'searching' && request.resource.data.status == 'voting')) &&
+                    isValidDuel(request.resource.data);
+                    
+      allow delete: if isAuthenticated() && 
+                    (request.auth.uid == resource.data.challengerId || request.auth.uid == resource.data.opponentId) || isAdmin();
+    }
+
+    match /leaderboards/{periodType}/{entryId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
+    }
+  }
+}

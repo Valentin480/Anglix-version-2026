@@ -1,0 +1,6 @@
+{
+  "name": "Anglix",
+  "description": "Une plateforme d'apprentissage gamifiée et addictive pour maîtriser n'importe quel sujet.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

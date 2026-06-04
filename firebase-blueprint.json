@@ -1,0 +1,161 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Représente un utilisateur d'Anglix avec sa progression et son inventaire.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "ID unique de l'utilisateur Firebase Auth" },
+        "name": { "type": "string", "description": "Pseudo de l'utilisateur" },
+        "schoolLevel": { "type": "string", "enum": ["Primaire", "Collège", "Lycée", "Supérieur"] },
+        "xp": { "type": "number", "description": "Points d'expérience totaux" },
+        "level": { "type": "number", "description": "Niveau actuel" },
+        "coins": { "type": "number", "description": "Pièces d'or" },
+        "gems": { "type": "number", "description": "Gemmes premium" },
+        "completedLessons": { "type": "array", "items": { "type": "string" } },
+        "inventory": { "type": "array", "items": { "$ref": "Reward" } },
+        "activeAura": { "type": "string" },
+        "activeTitle": { "type": "string" },
+        "activeSkin": { "type": "string" },
+        "streak": { "type": "number" },
+        "streakFreezeCount": { "type": "number" },
+        "lastActiveDate": { "type": "string" },
+        "lastQuestReset": { "type": "string" },
+        "activeTheme": { "type": "string" },
+        "activeXpBoostUntil": { "type": "string" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "schoolLevel", "xp", "level"]
+    },
+    "Reward": {
+      "title": "Reward",
+      "description": "Un item de l'inventaire.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "name": { "type": "string" },
+        "rarity": { "type": "string" },
+        "value": { "type": "number" }
+      }
+    },
+    "Question": {
+      "title": "Question",
+      "description": "Une question de quiz.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" } },
+        "correctAnswer": { "type": "number" }
+      }
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "Une leçon avec ses questions.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "explanation": { "type": "string" },
+        "level": { "type": "string" },
+        "difficulty": { "type": "number" },
+        "questions": { "type": "array", "items": { "$ref": "Question" } }
+      }
+    },
+    "Duel": {
+      "title": "Duel",
+      "description": "Un défi entre deux joueurs.",
+      "type": "object",
+      "properties": {
+        "challengerId": { "type": "string" },
+        "challengerName": { "type": "string" },
+        "opponentId": { "type": "string" },
+        "opponentName": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "lessonTitle": { "type": "string" },
+        "status": { "type": "string", "enum": ["searching", "voting", "playing", "completed", "cancelled"] },
+        "challengerVote": { "type": "string" },
+        "opponentVote": { "type": "string" },
+        "challengerScore": { "type": "number" },
+        "opponentScore": { "type": "number" },
+        "challengerErrors": { "type": "number" },
+        "opponentErrors": { "type": "number" },
+        "winnerId": { "type": "string" },
+        "mode": { "type": "string", "enum": ["speed", "accuracy"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "votingEndsAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["challengerId", "challengerName", "status", "createdAt"]
+    },
+    "UserStats": {
+      "title": "UserStats",
+      "description": "Statistiques détaillées de l'utilisateur.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "totalQuizzes": { "type": "number" },
+        "totalDuels": { "type": "number" },
+        "duelWins": { "type": "number" },
+        "duelLosses": { "type": "number" },
+        "xpPerCategory": { "type": "object", "additionalProperties": { "type": "number" } },
+        "accuracyPerCategory": { "type": "object", "additionalProperties": { "type": "number" } },
+        "bestStreak": { "type": "number" },
+        "totalTimeSpent": { "type": "number", "description": "Temps total en minutes" },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SavedLesson": {
+      "title": "SavedLesson",
+      "description": "Une leçon sauvegardée dans le sac à dos.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "savedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Entrée pour les classements périodiques.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "xp": { "type": "number" },
+        "period": { "type": "string", "description": "Format: YYYY-MM-DD, YYYY-WW, or YYYY-MM" },
+        "type": { "type": "string", "enum": ["daily", "weekly", "monthly", "all-time"] }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Profils utilisateurs et progression"
+    },
+    "/users/{userId}/stats/main": {
+      "schema": "UserStats",
+      "description": "Statistiques détaillées"
+    },
+    "/users/{userId}/backpack/{lessonId}": {
+      "schema": "SavedLesson",
+      "description": "Leçons sauvegardées"
+    },
+    "/lessons/{lessonId}": {
+      "schema": "Lesson",
+      "description": "Contenu des leçons et quiz"
+    },
+    "/duels/{duelId}": {
+      "schema": "Duel",
+      "description": "Défis et résultats des duels"
+    },
+    "/leaderboards/{periodType}/{entryId}": {
+      "schema": "LeaderboardEntry",
+      "description": "Classements par période"
+    }
+  }
+}
