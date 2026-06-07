@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, ArrowRight, ChevronLeft, Image as ImageIcon, Star, Zap, Printer, ExternalLink } from 'lucide-react';
+import { BookOpen, ArrowRight, ChevronLeft, Image as ImageIcon, Star, Zap, Printer, ExternalLink, Layers } from 'lucide-react';
 import { Lesson } from '../types';
 
 import ReactMarkdown from 'react-markdown';
@@ -11,9 +11,10 @@ interface LessonViewProps {
   lesson: Lesson;
   onContinue: () => void;
   onBack: () => void;
+  onFlashcards?: () => void;
 }
 
-export default function LessonView({ lesson, onContinue, onBack }: LessonViewProps) {
+export default function LessonView({ lesson, onContinue, onBack, onFlashcards }: LessonViewProps) {
   const [readTheme, setReadTheme] = useState<'light' | 'sepia' | 'dark'>('light');
   const [fontSize, setFontSize] = useState<'base' | 'lg' | 'xl'>('lg');
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -116,6 +117,15 @@ export default function LessonView({ lesson, onContinue, onBack }: LessonViewPro
             />
           </div>
         </div>
+
+        {onFlashcards && (
+          <button 
+            onClick={onFlashcards}
+            className="flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 bg-purple-600 text-white rounded-xl border-2 md:border-4 border-black font-black uppercase italic shadow-[3px_3px_0_rgba(0,0,0,1)] md:shadow-[4px_4px_0_rgba(0,0,0,1)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all text-[10px] md:text-sm"
+          >
+            <Layers size={16} className="md:w-5 md:h-5" /> Flashcards
+          </button>
+        )}
 
         <button 
           onClick={handlePrint}

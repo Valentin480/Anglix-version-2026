@@ -17,6 +17,7 @@ import Duels from './components/Duels';
 import StatsDashboard from './components/StatsDashboard';
 import Backpack from './components/Backpack';
 import AIGenerationOverlay from './components/AIGenerationOverlay';
+import FlashcardsView from './components/FlashcardsView';
 import { audio } from './lib/audio';
 import { auth, db, loginWithGoogle, logout, handleFirestoreError, OperationType } from './firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
@@ -36,7 +37,7 @@ export default function App() {
     return cleaned;
   };
 
-  const [view, setView] = useState<'home' | 'lesson' | 'quiz' | 'inventory' | 'leaderboard' | 'profile' | 'settings' | 'admin' | 'shop' | 'duels'>('home');
+  const [view, setView] = useState<'home' | 'lesson' | 'quiz' | 'inventory' | 'leaderboard' | 'profile' | 'settings' | 'admin' | 'shop' | 'duels' | 'flashcards'>('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [showLessonModal, setShowLessonModal] = useState(false);
@@ -1691,6 +1692,14 @@ const INITIAL_USER_STATE: UserState = {
               lesson={selectedLesson} 
               onContinue={handleLessonComplete} 
               onBack={() => setView('home')}
+              onFlashcards={() => setView('flashcards')}
+            />
+          )}
+
+          {view === 'flashcards' && selectedLesson && (
+            <FlashcardsView 
+              lesson={selectedLesson} 
+              onBack={() => setView('lesson')}
             />
           )}
 
