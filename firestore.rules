@@ -113,6 +113,21 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
       }
+
+      match /quizMistakes/{lessonId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      match /reminders/{reminderId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+
+    match /reminders/{reminderId} {
+      allow create: if true; // Permettre aux visiteurs de demander un rappel
+      allow read, update, delete: if isAdmin();
     }
 
     match /lessons/{lessonId} {

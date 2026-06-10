@@ -127,9 +127,12 @@ const INITIAL_USER_STATE: UserState = {
       // Check for deep links
       const params = new URLSearchParams(window.location.search);
       const playerId = params.get('player');
+      const lessonId = params.get('lessonId');
       if (playerId) {
         setViewingPlayerId(playerId);
         setView('profile');
+      } else if (lessonId) {
+        // Do not force home view; let our lesson deep-link handler process it
       } else {
         setView('home');
       }
@@ -305,6 +308,25 @@ const INITIAL_USER_STATE: UserState = {
 
     return () => unsubscribe();
   }, [isAuthReady, currentUser, isAdmin]);
+
+  // Deep Link Lesson Handler
+  useEffect(() => {
+    if (!isLessonsLoading && customLessons.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const urlLessonId = params.get('lessonId');
+      if (urlLessonId) {
+        const foundLesson = customLessons.find(l => l.id === urlLessonId);
+        if (foundLesson) {
+          setSelectedLesson(foundLesson);
+          setView('lesson');
+          
+          // Clean the query parameters so they don't loop or clutter URL
+          const nextUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+          window.history.replaceState({ path: nextUrl }, '', nextUrl);
+        }
+      }
+    }
+  }, [isLessonsLoading, customLessons]);
 
   // Viewing Player Listener
   useEffect(() => {

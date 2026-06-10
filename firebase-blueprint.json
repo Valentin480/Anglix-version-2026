@@ -130,6 +130,32 @@
         "period": { "type": "string", "description": "Format: YYYY-MM-DD, YYYY-WW, or YYYY-MM" },
         "type": { "type": "string", "enum": ["daily", "weekly", "monthly", "all-time"] }
       }
+    },
+    "QuizMistake": {
+      "title": "QuizMistake",
+      "description": "Erreurs commises pendant un quiz.",
+      "type": "object",
+      "properties": {
+        "lessonId": { "type": "string" },
+        "lessonTitle": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "mistakes": { "type": "array" }
+      }
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "Rappel programmé pour la révision espacée.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "lessonTitle": { "type": "string" },
+        "scheduledFor": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "link": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "sent"] }
+      }
     }
   },
   "firestore": {
@@ -144,6 +170,18 @@
     "/users/{userId}/backpack/{lessonId}": {
       "schema": "SavedLesson",
       "description": "Leçons sauvegardées"
+    },
+    "/users/{userId}/quizMistakes/{lessonId}": {
+      "schema": "QuizMistake",
+      "description": "Historique des erreurs sur un quiz"
+    },
+    "/users/{userId}/reminders/{reminderId}": {
+      "schema": "Reminder",
+      "description": "Rappels de révision espacée"
+    },
+    "/reminders/{reminderId}": {
+      "schema": "Reminder",
+      "description": "Rappels globaux de révision espacée pour tous les utilisateurs (y compris les visiteurs)"
     },
     "/lessons/{lessonId}": {
       "schema": "Lesson",
