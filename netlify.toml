@@ -1,5 +1,5 @@
 # Configuration Netlify pour Anglix
-# Gère les redirections SPA et configure les entêtes de sécurité pour autoriser 'unsafe-eval' (requis pour certaines dépendances)
+# Gère les redirections SPA et configure les entêtes de sécurité pour autoriser 'unsafe-eval' (requis pour certaines dépendances comme Framer Motion)
 
 [[redirects]]
   from = "/*"
