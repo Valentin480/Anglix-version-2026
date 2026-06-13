@@ -15,10 +15,19 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    esbuild: {
+      // Désactive l'utilisation de sourcemaps basés sur eval() en développement pour respecter la politique de sécurité du contenu (CSP)
+      sourcemap: false,
+    },
+    css: {
+      devSourcemap: false,
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
+      headers: {
+        'Content-Security-Policy': "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval' blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: blob:; connect-src 'self' https: wss:; frame-src 'self' https:;"
+      }
     },
   };
 });
