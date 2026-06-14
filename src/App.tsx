@@ -100,6 +100,23 @@ const INITIAL_USER_STATE: UserState = {
 
   const [user, setUser] = useState<UserState>(INITIAL_USER_STATE);
 
+  // Safety timeout to prevent stuck loader screens (e.g., if Firebase connection is blocked or slow)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!isAuthReady) {
+        console.warn('Auth state loading timed out. Falling back to guest mode.');
+        setIsAuthReady(true);
+      }
+      if (isLessonsLoading) {
+        console.warn('Lessons loading timed out. Falling back to local lessons.');
+        setCustomLessons(ALL_LESSONS);
+        setIsLessonsLoading(false);
+      }
+    }, 1500); // 1.5 seconds safety bypass
+
+    return () => clearTimeout(timer);
+  }, [isAuthReady, isLessonsLoading]);
+
   // Auth Listener
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (fbUser) => {

@@ -42,5 +42,6 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  // Ne pas planter l'application en jetant une exception non-gérée dans les écouteurs asynchrones
+  // throw new Error(JSON.stringify(errInfo));
 }
