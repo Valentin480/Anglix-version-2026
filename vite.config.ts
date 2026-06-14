@@ -15,9 +15,23 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    esbuild: {
+      // Completely disable development sourcemaps for TS/JS to prevent eval() generation
+      sourcemap: false,
+    },
+    css: {
+      // Completely disable development sourcemaps for styles
+      devSourcemap: false,
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       hmr: process.env.DISABLE_HMR !== 'true',
+      headers: {
+        // RADICAL CACHE BYPASS: Forces the browser/proxy to immediately clear cached old CSP headers
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     },
   };
 });
