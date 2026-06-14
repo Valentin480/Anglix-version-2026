@@ -43,7 +43,7 @@ export default function App() {
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [skipLessonPrompt, setSkipLessonPrompt] = useState(false);
   const [showGem, setShowGem] = useState(false);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(true);
   const [isGeneratingLesson, setIsGeneratingLesson] = useState(false);
   const [genLevel, setGenLevel] = useState<string>('');
   const [genIncludeVideo, setGenIncludeVideo] = useState(true);
@@ -54,8 +54,8 @@ export default function App() {
   const [viewingPlayerId, setViewingPlayerId] = useState<string | null>(null);
   const [viewingPlayer, setViewingPlayer] = useState<UserState | null>(null);
   const [allUsers, setAllUsers] = useState<(UserState & { id: string })[]>([]);
-  const [customLessons, setCustomLessons] = useState<Lesson[]>([]);
-  const [isLessonsLoading, setIsLessonsLoading] = useState(true);
+  const [customLessons, setCustomLessons] = useState<Lesson[]>(ALL_LESSONS);
+  const [isLessonsLoading, setIsLessonsLoading] = useState(false);
   const [duels, setDuels] = useState<Duel[]>([]);
   const [activeDuel, setActiveDuel] = useState<Duel | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -1109,9 +1109,9 @@ const INITIAL_USER_STATE: UserState = {
   if (!isAuthReady) {
     return (
       <div className="min-h-screen bg-[#FF6321] flex items-center justify-center">
-        <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }}>
+        <div className="animate-spin duration-1000">
           <Star className="text-white" size={48} />
-        </motion.div>
+        </div>
       </div>
     );
   }
@@ -1122,9 +1122,9 @@ const INITIAL_USER_STATE: UserState = {
     return (
       <div className="min-h-screen bg-[#FF6321] flex items-center justify-center">
         <div className="text-center">
-          <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="inline-block mb-4">
+          <div className="animate-spin duration-1000 inline-block mb-4">
             <Star className="text-white" size={48} />
-          </motion.div>
+          </div>
           <p className="text-white font-black uppercase italic tracking-widest">Chargement des leçons...</p>
         </div>
       </div>
