@@ -37,8 +37,25 @@ export default function App() {
     return cleaned;
   };
 
+  const highlightMatch = (text: string, query: string) => {
+    if (!query) return text;
+    const regex = new RegExp(`(${query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return (
+      <>
+        {parts.map((part, i) => 
+          part.toLowerCase() === query.toLowerCase() 
+            ? <mark key={i} className="bg-yellow-300 text-black px-0.5 rounded font-black">{part}</mark> 
+            : part
+        )}
+      </>
+    );
+  };
+
   const [view, setView] = useState<'home' | 'lesson' | 'quiz' | 'inventory' | 'leaderboard' | 'profile' | 'settings' | 'admin' | 'shop' | 'duels' | 'flashcards'>('home');
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('Tous');
+  const [activeLevel, setActiveLevel] = useState<SchoolLevel | 'Tous'>('Tous');
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [skipLessonPrompt, setSkipLessonPrompt] = useState(false);
@@ -158,6 +175,13 @@ const INITIAL_USER_STATE: UserState = {
     });
     return () => unsubscribe();
   }, []);
+
+  // Sync activeLevel with user's level
+  useEffect(() => {
+    if (user && user.schoolLevel) {
+      setActiveLevel(user.schoolLevel);
+    }
+  }, [user.schoolLevel]);
 
   // Listen for Duels
   useEffect(() => {
@@ -632,18 +656,56 @@ const INITIAL_USER_STATE: UserState = {
 
   const filteredLessons = useMemo(() => {
     let lessons = customLessons;
-    if (!searchQuery) {
-      lessons = customLessons.filter(l => l.level === user.schoolLevel);
-    } else {
-      const queryStr = searchQuery.toLowerCase();
-      lessons = customLessons.filter(l => 
+    
+    // 1. Filter by Level
+    if (activeLevel !== 'Tous') {
+      lessons = lessons.filter(l => l.level === activeLevel);
+    }
+    
+    // 2. Filter by Category
+    if (activeCategory !== 'Tous') {
+      lessons = lessons.filter(l => l.category.toLowerCase() === activeCategory.toLowerCase());
+    }
+    
+    // 3. Fuzzy search match
+    if (searchQuery) {
+      const queryStr = searchQuery.toLowerCase().trim();
+      lessons = lessons.filter(l => 
         l.title.toLowerCase().includes(queryStr) || 
         l.category.toLowerCase().includes(queryStr) ||
-        l.level.toLowerCase().includes(queryStr)
+        l.level.toLowerCase().includes(queryStr) ||
+        (l.explanation && l.explanation.toLowerCase().includes(queryStr))
       );
     }
     return lessons.slice(0, 24);
-  }, [searchQuery, user.schoolLevel, customLessons]);
+  }, [searchQuery, activeLevel, activeCategory, customLessons]);
+
+  const availableCategories = useMemo(() => {
+    const cats = new Set<string>();
+    customLessons.forEach(l => {
+      if (l.category) {
+        cats.add(l.category.trim());
+      }
+    });
+    return ['Tous', ...Array.from(cats)];
+  }, [customLessons]);
+
+  const getCategoryEmoji = (category: string) => {
+    const cat = category.toLowerCase();
+    if (cat.includes('math')) return '📐';
+    if (cat.includes('franc') || cat.includes('franç')) return '✍️';
+    if (cat.includes('hist')) return '⏳';
+    if (cat.includes('svt') || cat.includes('biol')) return '🧬';
+    if (cat.includes('phys')) return '⚡';
+    if (cat.includes('angl') || cat.includes('english')) return '🇬🇧';
+    if (cat.includes('philo')) return '💭';
+    if (cat.includes('info') || cat.includes('code')) return '💻';
+    if (cat.includes('géo') || cat.includes('geo')) return '🌍';
+    if (cat.includes('éco') || cat.includes('eco')) return '📈';
+    if (cat.includes('chim')) return '🧪';
+    if (cat.includes('espag')) return '🇪🇸';
+    return '📝';
+  };
 
   const handleOnboardingComplete = async (name: string, schoolLevel: SchoolLevel) => {
     const newUser: UserState = {
@@ -1512,22 +1574,92 @@ const INITIAL_USER_STATE: UserState = {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8">
                 {/* Left Column: Lessons */}
                 <div className="md:col-span-8 space-y-6 md:space-y-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2">
-                    <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tight flex items-center gap-3">
-                      <BookOpen className="text-blue-600" /> 
-                      {searchQuery ? 'Résultats' : 'Tes Leçons'}
-                    </h3>
-                    {!searchQuery && (
-                      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                        {['Tous', 'Maths', 'Français', 'Histoire'].map(cat => (
-                          <button key={cat} className="px-4 py-1.5 bg-white border-2 border-black rounded-xl text-[10px] font-black uppercase hover:bg-gray-50 whitespace-nowrap">
-                            {cat}
-                          </button>
-                        ))}
+                  
+                  {/* Advanced Filters Dashboard */}
+                  <div className="bg-white p-5 md:p-6 rounded-[32px] border-4 border-black shadow-[6px_6px_0_rgba(0,0,0,1)] space-y-4">
+                    {/* Level Filter Row */}
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                        <span>🎓</span> Niveaux d'apprentissage
                       </div>
+                      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                        {['Tous', 'Primaire', 'Collège', 'Lycée', 'Supérieur'].map(level => {
+                          const isSelected = activeLevel === level;
+                          return (
+                            <button
+                              key={level}
+                              onClick={() => {
+                                audio.play('click');
+                                setActiveLevel(level as any);
+                              }}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all whitespace-nowrap border-2 border-black ${
+                                isSelected 
+                                  ? 'bg-blue-600 text-white shadow-[2px_2px_0_rgba(0,0,0,1)]' 
+                                  : 'bg-white hover:bg-gray-50 text-black'
+                              }`}
+                            >
+                              {level === 'Tous' ? '🌐 Tous' : level}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Category Filter Row */}
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                        <span>📚</span> Thématiques & Matières
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                        {availableCategories.map(cat => {
+                          const isSelected = activeCategory.toLowerCase() === cat.toLowerCase() || (cat === 'Tous' && activeCategory === 'Tous');
+                          return (
+                            <button
+                              key={cat}
+                              onClick={() => {
+                                audio.play('click');
+                                setActiveCategory(cat);
+                              }}
+                              className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase transition-all whitespace-nowrap border-2 border-black ${
+                                isSelected 
+                                  ? 'bg-yellow-400 text-black shadow-[2px_2px_0_rgba(0,0,0,1)]' 
+                                  : 'bg-white hover:bg-gray-50 text-black'
+                              }`}
+                            >
+                              {getCategoryEmoji(cat)} {cat}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Header Row */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2 pt-2">
+                    <h3 className="text-xl md:text-2xl font-black uppercase italic tracking-tight flex items-center gap-3">
+                      <BookOpen className="text-blue-600 animate-pulse" /> 
+                      {searchQuery 
+                        ? `Résultats (${filteredLessons.length})` 
+                        : `Tes Leçons (${filteredLessons.length})`}
+                    </h3>
+                    {(searchQuery || activeCategory !== 'Tous' || activeLevel !== 'Tous') && (
+                      <button
+                        onClick={() => {
+                          audio.play('click');
+                          setSearchQuery('');
+                          setActiveCategory('Tous');
+                          if (user.schoolLevel) {
+                            setActiveLevel(user.schoolLevel);
+                          }
+                        }}
+                        className="text-xs font-black uppercase text-red-500 hover:text-red-700 transition-colors flex items-center gap-1.5 bg-red-50 px-3 py-1.5 rounded-xl border-2 border-black"
+                      >
+                        ✖ Réinitialiser les filtres
+                      </button>
                     )}
                   </div>
 
+                  {/* Lessons Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {filteredLessons.map((lesson, idx) => (
                       <motion.div
@@ -1535,18 +1667,19 @@ const INITIAL_USER_STATE: UserState = {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.05 }}
-                        whileHover={{ y: -8, rotate: idx % 2 === 0 ? 1 : -1 }}
+                        whileHover={{ y: -8, rotate: idx % 2 === 0 ? 0.5 : -0.5 }}
                         onClick={() => handleStartLesson(lesson)}
-                        className="bg-white p-6 rounded-[32px] border-4 border-black shadow-[0_8px_0_rgba(0,0,0,1)] cursor-pointer group relative overflow-hidden"
+                        className="bg-white p-6 rounded-[32px] border-4 border-black shadow-[0_8px_0_rgba(0,0,0,1)] cursor-pointer group relative overflow-hidden transition-all"
                       >
-                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
                           <BookOpen size={80} />
                         </div>
                         
                         <div className="flex justify-between items-start mb-4 relative z-10">
                           <div className="flex flex-col gap-1">
-                            <span className="px-3 py-1 bg-black text-white text-[10px] font-black uppercase rounded-lg w-fit">
-                              {lesson.category}
+                            <span className="px-3 py-1 bg-black text-white text-[10px] font-black uppercase rounded-lg w-fit flex items-center gap-1">
+                              <span>{getCategoryEmoji(lesson.category)}</span>
+                              <span>{lesson.category}</span>
                             </span>
                             <span className="text-[10px] font-black uppercase text-gray-400">
                               {lesson.level}
@@ -1559,13 +1692,13 @@ const INITIAL_USER_STATE: UserState = {
                           )}
                         </div>
                         
-                        <h3 className="text-2xl font-black uppercase italic mb-6 group-hover:text-blue-600 transition-colors leading-none tracking-tighter">
-                          {lesson.title}
+                        <h3 className="text-2xl font-black uppercase italic mb-6 group-hover:text-blue-600 transition-colors leading-tight tracking-tighter">
+                          {highlightMatch(lesson.title, searchQuery)}
                         </h3>
                         
                         <div className="flex items-center justify-between pt-4 border-t-2 border-black border-dashed">
                           <div className="flex items-center gap-2 text-[10px] font-black uppercase text-gray-400">
-                            <Zap size={12} className="text-yellow-500" /> 50 Questions
+                            <Zap size={12} className="text-yellow-500" /> 5 Questions
                           </div>
                           <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white group-hover:translate-x-1 transition-transform">
                             <ChevronRight size={18} />
@@ -1574,33 +1707,55 @@ const INITIAL_USER_STATE: UserState = {
                       </motion.div>
                     ))}
 
-                    {filteredLessons.length === 0 && searchQuery && (
+                    {/* Empty Filter or Search state */}
+                    {filteredLessons.length === 0 && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="col-span-full py-16 flex flex-col items-center text-center bg-yellow-50 rounded-[40px] border-8 border-black border-dashed"
+                        className="col-span-full py-12 px-6 flex flex-col items-center text-center bg-yellow-50 rounded-[40px] border-8 border-black border-dashed"
                       >
-                        <div className="w-24 h-24 bg-white rounded-3xl border-4 border-black flex items-center justify-center mb-6 shadow-[8px_8px_0_rgba(0,0,0,1)]">
-                          <Sparkles size={48} className="text-yellow-500" />
+                        <div className="w-20 h-20 bg-white rounded-3xl border-4 border-black flex items-center justify-center mb-6 shadow-[6px_6px_0_rgba(0,0,0,1)]">
+                          <Sparkles size={40} className="text-yellow-500" />
                         </div>
-                        <h3 className="text-3xl font-black uppercase italic mb-4">Sujet inconnu ?</h3>
-                        <p className="text-gray-500 font-bold uppercase tracking-widest text-sm mb-8 max-w-md px-6">
-                          Laisse l'IA créer une fiche complète sur <span className="text-black underline decoration-4 decoration-yellow-400">"{searchQuery}"</span> pour toi !
-                        </p>
-                        <button
-                          onClick={handleGenerateLesson}
-                          disabled={isGeneratingLesson}
-                          className="group relative px-12 py-6 bg-black text-white rounded-[32px] font-black text-xl uppercase italic tracking-widest flex items-center justify-center gap-4 hover:scale-105 active:scale-95 transition-all shadow-[0_12px_0_rgba(0,0,0,0.3)]"
-                        >
-                          {isGeneratingLesson ? (
-                            <Loader2 className="animate-spin" size={24} />
+                        <h3 className="text-2xl md:text-3xl font-black uppercase italic mb-4">
+                          {searchQuery ? 'Sujet inconnu ?' : 'Aucun cours trouvé'}
+                        </h3>
+                        <p className="text-gray-500 font-bold uppercase tracking-wider text-xs md:text-sm mb-8 max-w-md">
+                          {searchQuery ? (
+                            <>Laisse notre IA créer une fiche complète sur <span className="text-black underline decoration-4 decoration-yellow-400">"{searchQuery}"</span> pour toi en 5 secondes !</>
                           ) : (
-                            <>
-                              <Sparkles size={24} className="group-hover:rotate-12 transition-transform" /> 
-                              Créer la Fiche
-                            </>
+                            <>Aucun cours ne correspond à cette combinaison de filtres. Essaie d'élargir tes filtres ou crée un nouveau cours !</>
                           )}
-                        </button>
+                        </p>
+                        
+                        {searchQuery ? (
+                          <button
+                            onClick={handleGenerateLesson}
+                            disabled={isGeneratingLesson}
+                            className="group relative px-10 py-5 bg-black text-white rounded-[24px] font-black text-lg uppercase italic tracking-widest flex items-center justify-center gap-4 hover:scale-105 active:scale-95 transition-all shadow-[0_8px_0_rgba(0,0,0,0.3)] border-2 border-black"
+                          >
+                            {isGeneratingLesson ? (
+                              <Loader2 className="animate-spin" size={24} />
+                            ) : (
+                              <>
+                                <Sparkles size={22} className="group-hover:rotate-12 transition-transform" /> 
+                                Créer la Fiche "{searchQuery}"
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              audio.play('click');
+                              setActiveCategory('Tous');
+                              setActiveLevel('Tous');
+                              setSearchQuery('');
+                            }}
+                            className="px-8 py-4 bg-black text-white rounded-[20px] font-black text-sm uppercase italic tracking-wider hover:scale-105 active:scale-95 transition-all border-2 border-black shadow-[4px_4px_0_rgba(255,255,255,1)]"
+                          >
+                            🔄 Réinitialiser tous les filtres
+                          </button>
+                        )}
                       </motion.div>
                     )}
                   </div>
